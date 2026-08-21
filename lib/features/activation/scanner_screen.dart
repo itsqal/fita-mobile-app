@@ -18,8 +18,11 @@ class ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<ScannerScreen> {
   final _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
-    // The box carries several codes; the MSISDN is a 1-D barcode.
+    // The label carries several codes. Only the QR holds the MSISDN, as
+    // `MSISDN|ICCID`; the 1-D barcode beside it is the ICCID alone. The 1-D
+    // formats stay listed because other stock may print the number directly.
     formats: const [
+      BarcodeFormat.qrCode,
       BarcodeFormat.code128,
       BarcodeFormat.code39,
       BarcodeFormat.ean13,
@@ -43,7 +46,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       final raw = barcode.rawValue;
       if (raw == null || raw.isEmpty) continue;
 
-      final normalised = Msisdn.normalise(raw);
+      final normalised = Msisdn.fromScan(raw);
       if (normalised != null) {
         _handled = true;
         Navigator.of(context).pop(normalised);

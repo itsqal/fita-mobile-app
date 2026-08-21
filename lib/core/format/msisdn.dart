@@ -7,6 +7,15 @@ abstract final class Msisdn {
   /// Matches what the API accepts: `^62[0-9]{8,13}$`.
   static final _apiForm = RegExp(r'^62[0-9]{8,13}$');
 
+  /// Extracts the MSISDN from a scanned code and normalises it.
+  ///
+  /// The label's QR carries two fields, `MSISDN|ICCID`, e.g.
+  /// `085882724305|89620100002039213172`. Splitting first matters: [normalise]
+  /// strips punctuation, so a raw pipe payload would fuse into one long number
+  /// instead of failing. Codes without a pipe pass through unchanged, so the
+  /// plain 1-D MSISDN barcode still works, and an ICCID-only code still fails.
+  static String? fromScan(String raw) => normalise(raw.split('|').first);
+
   /// Converts a scanned or typed number to the `62` form the API expects.
   ///
   /// Returns null when the input cannot be a valid Indonesian mobile number,
