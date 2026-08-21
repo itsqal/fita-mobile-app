@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#C80078"/><stop offset="56%" stop-color="#DD5A12"/><stop offset="100%" stop-color="#F5AF00"/></linearGradient><linearGradient id="sheeng" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.16"/><stop offset="55%" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs><clipPath id="cg"><circle cx="512.0" cy="512.0" r="512.0"/></clipPath><g clip-path="url(#cg)"><rect width="1024" height="1024" fill="url(#g)"/><rect width="1024" height="1024" fill="url(#sheeng)"/></g><g transform="translate(174.08,296.11) scale(6.25778)"><g>
+ <g fill="#FFF">
+  <rect x="0" y="42" width="11" height="27" rx="5.5"/>
+  <rect x="16" y="32" width="11" height="37" rx="5.5"/>
+  <rect x="32" y="21" width="11" height="48" rx="5.5"/>
+  <rect x="0" y="53" width="27" height="6" rx="3"/>
+ </g>
+ <g fill="none" stroke="#FFF" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M53.5 63.5 L53.5 13 A7.5 7.5 0 0 1 68.5 13 L68.5 15.5" stroke-width="11"/>
+  <path d="M53.5 32 L68.5 32" stroke-width="6"/>
+ </g>
+ <circle cx="68.5" cy="32" r="5.5" fill="#FFF"/>
+ <rect x="63" y="42" width="11" height="27" rx="5.5" fill="#FFF"/>
+ <g fill="none" stroke="#FFF" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M81.5 9.5 L81.5 19.5 L104.5 19.5" stroke-width="7"/>
+  <path d="M82 31.5 L104.5 31.5" stroke-width="7"/>
+  <circle cx="93" cy="54" r="11" stroke-width="8"/>
+  <path d="M104 44 L104 54" stroke-width="8"/>
+ </g>
+</g></g></svg>

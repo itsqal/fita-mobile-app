@@ -1,0 +1,61 @@
+# AI Agents
+CLAUDE.md
+claude/
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code — launch and task configuration is developer-specific.
+.vscode/
+
+# Flutter / Dart / Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication and obfuscation maps
+app.*.symbols
+app.*.map.json
+
+# Android Studio drops build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Build outputs. /build/ already covers the normal locations, but these catch a
+# copy left anywhere in the tree — an APK is a release artifact, not source.
+*.apk
+*.aab
+*.aar
+*.apks
+
+# Signing material. Also covered by android/.gitignore; repeated here because
+# committing one is unrecoverable — the key would have to be rotated.
+*.jks
+*.keystore
+key.properties
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
