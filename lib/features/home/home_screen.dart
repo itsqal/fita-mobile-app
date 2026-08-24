@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api/api_exception.dart';
-import '../../core/format/formatters.dart';
 import '../../core/period.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/brand.dart';
@@ -10,6 +9,7 @@ import '../../data/ae_repository.dart';
 import '../../data/models/models.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/async_states.dart';
+import '../../widgets/incentive_amount.dart';
 import '../../widgets/menu_card.dart';
 import '../../widgets/period_filter_row.dart';
 import '../../widgets/stat_tile.dart';
@@ -18,6 +18,7 @@ import '../auth/session_controller.dart';
 import '../customers/customer_form_screen.dart';
 import '../report/report_screen.dart';
 import 'activity_chart.dart';
+import 'activity_series.dart';
 
 /// **Halo, {nama}!** — the dashboard.
 class HomeScreen extends StatefulWidget {
@@ -117,21 +118,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   MenuCard(
                     iconAsset: MenuIcon.newCustomer,
                     title: 'New Customer',
-                    description: 'AE dapat menambahkan dan melihat New Customer',
+                    description: 'Catat prospek baru langsung dari lapangan',
                     onTap: () => _open(const CustomerFormScreen()),
                   ),
                   const SizedBox(height: 14),
                   MenuCard(
                     iconAsset: MenuIcon.customerActivation,
                     title: 'Aktivasi Pelanggan',
-                    description: 'AE dapat menambahkan aktivasi dan MSISDN',
+                    description: 'Scan MSISDN dan aktifkan unit pelanggan',
                     onTap: () => _open(const ActivationFormScreen()),
                   ),
                   const SizedBox(height: 14),
                   MenuCard(
                     iconAsset: MenuIcon.report,
                     title: 'Report',
-                    description: 'AE dapat melihat total dan riwayat pengisian',
+                    description: 'Pantau performa dan riwayat aktivitas kamu',
                     onTap: () => _open(const ReportScreen()),
                   ),
                 ],
@@ -165,7 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           padding: const EdgeInsets.fromLTRB(12, 18, 16, 12),
-          child: ActivityChart(days: _days ?? const []),
+          child: ActivityChart(
+            bars: buildActivitySeries(_days ?? const [], _period.grouping),
+          ),
         ),
         const SizedBox(height: 16),
         Row(
@@ -180,8 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: StatTile(
                 label: 'Insentif',
-                value: Money.incentiveTile(summary.incentiveIdr),
-                caption: 'Ratus Ribu Rupiah',
+                valueWidget:
+                    IncentiveAmount(rupiah: summary.incentiveIdr),
               ),
             ),
           ],

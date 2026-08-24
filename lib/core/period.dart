@@ -6,7 +6,6 @@
 /// filtering the contract actually offers.
 enum Period {
   d7('7d', '7 Hari Terakhir'),
-  d30('30d', '30 Hari Terakhir'),
   mtd('mtd', 'Bulan Ini'),
   ytd('ytd', 'Tahun Ini');
 
@@ -17,4 +16,20 @@ enum Period {
 
   /// What the chip displays.
   final String label;
+
+  /// How the Home chart buckets this window's daily series.
+  ///
+  /// A month of days — let alone a year — cannot each get their own bar without
+  /// the x-axis collapsing into stacked, unreadable labels, so `mtd` rolls the
+  /// days up into weeks (W1–W5) and `ytd` into months (Jan–Des). `d7` is short
+  /// enough to keep one bar per day.
+  ChartGrouping get grouping => switch (this) {
+        d7 => ChartGrouping.daily,
+        mtd => ChartGrouping.weekly,
+        ytd => ChartGrouping.monthly,
+      };
 }
+
+/// How the Home chart rolls the daily API series up into bars — see
+/// [Period.grouping].
+enum ChartGrouping { daily, weekly, monthly }

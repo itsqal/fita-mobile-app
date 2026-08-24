@@ -6,18 +6,22 @@ import '../core/theme/brand.dart';
 /// A headline counter — `Total Aktivasi`, `Insentif`, `New Customer`,
 /// `Hot Leads`.
 ///
-/// [caption] carries the smaller "Ratus Ribu Rupiah" line that only the
-/// Insentif tile shows.
+/// [valueWidget] replaces the plain numeral for tiles that render something
+/// richer — the Insentif tile passes an [IncentiveAmount]. [caption] carries an
+/// optional smaller line beneath the value.
 class StatTile extends StatelessWidget {
   const StatTile({
     super.key,
     required this.label,
-    required this.value,
+    this.value,
+    this.valueWidget,
     this.caption,
-  });
+  }) : assert(value != null || valueWidget != null,
+            'a tile needs either a value or a valueWidget');
 
   final String label;
-  final String value;
+  final String? value;
+  final Widget? valueWidget;
   final String? caption;
 
   @override
@@ -48,18 +52,19 @@ class StatTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Brand.magenta,
-                fontSize: 34,
-                fontWeight: FontWeight.w800,
-                height: 1.1,
+          valueWidget ??
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value!,
+                  style: const TextStyle(
+                    color: Brand.magenta,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                  ),
+                ),
               ),
-            ),
-          ),
           if (caption != null) ...[
             const SizedBox(height: 2),
             Text(
