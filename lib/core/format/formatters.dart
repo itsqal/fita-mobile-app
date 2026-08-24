@@ -1,7 +1,5 @@
 import 'package:intl/intl.dart';
 
-import '../config/env.dart';
-
 /// Date rendering.
 ///
 /// Indonesian month names throughout — `11 Agustus 2026`. The English months in
@@ -13,6 +11,7 @@ abstract final class Dates {
   static final _listDate = DateFormat('d MMMM yyyy', _locale);
   static final _fieldDate = DateFormat('dd/MM/yyyy', _locale);
   static final _chartDay = DateFormat('dd/MM', _locale);
+  static final _chartMonth = DateFormat('MMM', _locale);
   static final _apiDate = DateFormat('yyyy-MM-dd');
 
   /// `11 Agustus 2026` — the list screens and Activation Date.
@@ -21,8 +20,11 @@ abstract final class Dates {
   /// `21/08/2026` — the Tanggal Pergi field.
   static String fieldDate(DateTime d) => _fieldDate.format(d.toLocal());
 
-  /// `20/05` — the Home chart's x-axis.
+  /// `20/05` — the Home chart's x-axis when grouped by day.
   static String chartDay(DateTime d) => _chartDay.format(d.toLocal());
+
+  /// `Agu` — the Home chart's x-axis when grouped by month (Tahun Ini).
+  static String chartMonth(DateTime d) => _chartMonth.format(d.toLocal());
 
   /// `2026-08-21` — the wire format for `visitDate`.
   static String apiDate(DateTime d) => _apiDate.format(d);
@@ -34,13 +36,14 @@ abstract final class Dates {
 
 /// Money rendering.
 abstract final class Money {
-  /// The Insentif tile: whole rupiah in, hundreds-of-thousands out.
+  static final _rupiah = NumberFormat.decimalPattern('id_ID');
+
+  /// The Insentif balance, e-wallet style: whole rupiah in, `Rp135.000` out.
   ///
-  /// 24 200 000 renders as `242` beneath the caption "Ratus Ribu Rupiah".
-  /// The scaling is presentation-only — never send a scaled value back.
-  static String incentiveTile(int rupiah) {
-    return (rupiah ~/ Env.incentiveDisplayDivisor).toString();
-  }
+  /// Shown in full rather than scaled — the older `242` + "Ratus Ribu Rupiah"
+  /// tile made an AE do the arithmetic. Formatting is presentation-only; the
+  /// value on the wire is always whole rupiah and is never sent back scaled.
+  static String rupiah(int amount) => _rupiah.format(amount);
 }
 
 /// Customer status rendering.

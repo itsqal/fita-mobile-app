@@ -47,7 +47,7 @@ class FitaApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'FITA',
+        title: 'FITA 2.0',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
         home: const _Root(),

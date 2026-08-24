@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api/api_exception.dart';
-import '../../core/format/formatters.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/brand.dart';
 import '../../data/ae_repository.dart';
 import '../../data/models/models.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/async_states.dart';
+import '../../widgets/incentive_amount.dart';
 import '../../widgets/menu_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../activation/activation_list_screen.dart';
@@ -137,8 +137,7 @@ class _ReportScreenState extends State<ReportScreen> {
             Expanded(
               child: StatTile(
                 label: 'Insentif',
-                value: Money.incentiveTile(s.incentiveIdr),
-                caption: 'Ratus Ribu Rupiah',
+                valueWidget: IncentiveAmount(rupiah: s.incentiveIdr),
               ),
             ),
           ],
