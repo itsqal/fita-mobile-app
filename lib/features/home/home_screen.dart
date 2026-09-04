@@ -165,9 +165,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          padding: const EdgeInsets.fromLTRB(12, 18, 16, 12),
-          child: ActivityChart(
-            bars: buildActivitySeries(_days ?? const [], _period.grouping),
+          padding: const EdgeInsets.fromLTRB(12, 14, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 12),
+                child: Text(
+                  'Grafik Aktivasi',
+                  style: TextStyle(
+                    color: Brand.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              ActivityChart(
+                bars: buildActivitySeries(_days ?? const [], _period.grouping),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
