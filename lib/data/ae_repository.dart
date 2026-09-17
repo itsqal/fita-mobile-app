@@ -137,6 +137,26 @@ class AeRepository {
   Future<InventoryItem> lookupMsisdn(String msisdn) async =>
       InventoryItem.fromJson(await _api.get('/inventory/msisdn/$msisdn'));
 
+  /// Alokasi Modem: every unit allocated to this AE with the given status.
+  ///
+  /// Reads all pages. An AE's stock is tens of units, not thousands, so one
+  /// complete list is simpler than paging on scroll.
+  Future<List<InventoryItem>> myInventory({String? status}) async {
+    final items = <InventoryItem>[];
+    var page = 1;
+    while (true) {
+      final json = await _api.get('/inventory/me', query: {
+        'status': ?status,
+        'page': page,
+        'perPage': 100,
+      });
+      final result = Paginated.fromJson(json, InventoryItem.fromJson);
+      items.addAll(result.items);
+      if (!result.hasMore) return items;
+      page++;
+    }
+  }
+
   Future<Paginated<Activation>> activations({
     String period = '7d',
     int page = 1,

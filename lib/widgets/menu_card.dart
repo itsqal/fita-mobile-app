@@ -12,6 +12,10 @@ abstract final class MenuIcon {
   static const customerActivation =
       'assets/svg/icons/ic_customer_activation.svg';
   static const report = 'assets/svg/icons/ic_report.svg';
+
+  /// Not from the original asset pack: drawn for Alokasi Modem in the pack's
+  /// style, since the pack had no icon for it.
+  static const modemAllocation = 'assets/svg/icons/ic_modem_allocation.svg';
 }
 
 /// A navigation card: icon, magenta title, one-line description, and an amber

@@ -16,6 +16,7 @@ import '../../widgets/stat_tile.dart';
 import '../activation/activation_form_screen.dart';
 import '../auth/session_controller.dart';
 import '../customers/customer_form_screen.dart';
+import '../inventory/modem_allocation_screen.dart';
 import '../report/report_screen.dart';
 import 'activity_chart.dart';
 import 'activity_series.dart';
@@ -130,6 +131,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 14),
                   MenuCard(
+                    iconAsset: MenuIcon.modemAllocation,
+                    title: 'Alokasi Modem',
+                    description: 'Lihat stok modem yang dialokasikan untuk kamu',
+                    onTap: () => _open(const ModemAllocationScreen()),
+                  ),
+                  const SizedBox(height: 14),
+                  MenuCard(
                     iconAsset: MenuIcon.report,
                     title: 'Report',
                     description: 'Pantau performa dan riwayat aktivitas kamu',
@@ -165,9 +173,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          padding: const EdgeInsets.fromLTRB(12, 18, 16, 12),
-          child: ActivityChart(
-            bars: buildActivitySeries(_days ?? const [], _period.grouping),
+          padding: const EdgeInsets.fromLTRB(12, 14, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 12),
+                child: Text(
+                  'Grafik Aktivasi',
+                  style: TextStyle(
+                    color: Brand.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              ActivityChart(
+                bars: buildActivitySeries(_days ?? const [], _period.grouping),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),

@@ -51,4 +51,10 @@ abstract final class Brand {
   // for either. Named here so they stay consistent and reviewable in one place.
   static const success = Color(0xFF2FBF5B);
   static const danger = Color(0xFFEF3B4E);
+
+  // --- Contact buttons ------------------------------------------------------
+  // NOT part of the §5 palette: the Daftar New Customer / Hot Leads mockups
+  // draw the call button teal and the WhatsApp button in WhatsApp green.
+  static const callTeal = Color(0xFF2A9D8F);
+  static const whatsappGreen = Color(0xFF2BB673);
 }

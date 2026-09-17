@@ -21,8 +21,8 @@ android {
         applicationId = "com.ioh.hifiair"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // 23 is the floor for flutter_secure_storage's hardware-backed keystore;
-        // mobile_scanner and geolocator both need 21 or higher.
+        // Flutter's default, currently API 24 (Android 7.0). url_launcher needs
+        // 24; the other plugins need 23 or lower.
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
