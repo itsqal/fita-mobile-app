@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +13,7 @@ import '../../data/ae_repository.dart';
 import '../../data/models/models.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/form_fields.dart';
+import '../activation/msisdn_scan_list.dart';
 import '../auth/session_controller.dart';
 
 /// **Input New Customer** — registers a prospect the AE just met.
@@ -28,6 +31,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   final _address = TextEditingController();
   final _longLat = TextEditingController();
   final _location = LocationService();
+  late final MsisdnScanController _scans;
 
   DateTime? _visitDate;
   String? _status;
@@ -39,8 +43,38 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   /// dropped response cannot create a duplicate (§7 rule 5).
   String? _idempotencyKey;
 
+  /// Set once the customer is saved. A Purchase whose activations partly fail
+  /// is retried without creating the customer a second time.
+  int? _savedCustomerId;
+
+  final _random = Random();
+
+  /// Stands in for reverse geocoding, which the app has no API for yet.
+  static const _placeholderAddresses = [
+    'Jl. Sudirman Kav. 45, RT 003/RW 002, Kelurahan Karet Semanggi, Kecamatan Setiabudi, Jakarta Selatan, DKI Jakarta 12930',
+    'Jl. Kemang Raya No. 88, RT 007/RW 004, Kelurahan Bangka, Kecamatan Mampang Prapatan, Jakarta Selatan, DKI Jakarta 12730',
+    'Jl. Gajah Mada No. 123, RT 002/RW 001, Kelurahan Petojo Utara, Kecamatan Gambir, Jakarta Pusat, DKI Jakarta 10130',
+    'Jl. Kelapa Gading Boulevard No. 56, RT 010/RW 006, Kelurahan Kelapa Gading Barat, Kecamatan Kelapa Gading, Jakarta Utara, DKI Jakarta 14240',
+    'Jl. Panjang No. 200, RT 005/RW 003, Kelurahan Kedoya Utara, Kecamatan Kebon Jeruk, Jakarta Barat, DKI Jakarta 11520',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _scans = MsisdnScanController(context.read<AeRepository>())
+      ..addListener(_onScansChanged);
+  }
+
+  // Kirim's enabled state depends on whether the list is empty.
+  void _onScansChanged() => setState(() {});
+
+  bool get _isPurchase => _status == CustomerStatusWire.purchase;
+
   @override
   void dispose() {
+    _scans
+      ..removeListener(_onScansChanged)
+      ..dispose();
     _name.dispose();
     _phone.dispose();
     _address.dispose();
@@ -71,6 +105,12 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
       setState(() {
         _fix = result.fix;
         _longLat.text = result.fix!.display;
+        // Only fill an empty field, so a second GET GPS never wipes what the
+        // AE typed or corrected.
+        if (_address.text.trim().isEmpty) {
+          _address.text = _placeholderAddresses[
+              _random.nextInt(_placeholderAddresses.length)];
+        }
       });
       return;
     }
@@ -119,38 +159,63 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
       return;
     }
 
-    _idempotencyKey ??= AeRepository.newIdempotencyKey();
+    if (_isPurchase && _scans.isEmpty) {
+      _toast('Scan minimal satu MSISDN untuk status Purchase.');
+      return;
+    }
+
     setState(() => _submitting = true);
 
-    try {
-      await context.read<AeRepository>().createCustomer(
-            visitDate: _visitDate!,
-            fullName: _name.text.trim(),
-            phoneNumber: _phone.text.trim(),
-            address: _address.text.trim(),
-            latitude: _fix!.latitude,
-            longitude: _fix!.longitude,
-            geoAccuracyM: _fix!.accuracyM,
-            isMocked: _fix!.isMocked,
-            status: _status!,
-            idempotencyKey: _idempotencyKey,
-          );
-      if (!mounted) return;
-      _toast('Customer berhasil ditambahkan.');
-      Navigator.of(context).pop(true);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      // Branch on the code, never the message (§7 rule 6).
-      final message = switch (e.code) {
-        'DUPLICATE_PHONE_NUMBER' || 'CUSTOMER_ALREADY_EXISTS' =>
-          'Nomor handphone ini sudah pernah kamu daftarkan.',
-        ApiException.offlineCode =>
-          'Tidak ada koneksi. Coba lagi saat jaringan kembali.',
-        _ => e.message,
-      };
-      _toast(message);
+    if (_savedCustomerId == null) {
+      _idempotencyKey ??= AeRepository.newIdempotencyKey();
+      try {
+        final customer = await context.read<AeRepository>().createCustomer(
+              visitDate: _visitDate!,
+              fullName: _name.text.trim(),
+              phoneNumber: _phone.text.trim(),
+              address: _address.text.trim(),
+              latitude: _fix!.latitude,
+              longitude: _fix!.longitude,
+              geoAccuracyM: _fix!.accuracyM,
+              isMocked: _fix!.isMocked,
+              status: _status!,
+              idempotencyKey: _idempotencyKey,
+            );
+        _savedCustomerId = customer.customerId;
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        setState(() => _submitting = false);
+        // Branch on the code, never the message (§7 rule 6).
+        final message = switch (e.code) {
+          'DUPLICATE_PHONE_NUMBER' || 'CUSTOMER_ALREADY_EXISTS' =>
+            'Nomor handphone ini sudah pernah kamu daftarkan.',
+          ApiException.offlineCode =>
+            'Tidak ada koneksi. Coba lagi saat jaringan kembali.',
+          _ => e.message,
+        };
+        _toast(message);
+        return;
+      }
     }
+
+    if (_isPurchase) {
+      final total = _scans.devices.length;
+      final failed = await _scans.activateAll(
+        customerId: _savedCustomerId!,
+        fix: _fix!,
+      );
+      if (!mounted) return;
+      if (failed > 0) {
+        setState(() => _submitting = false);
+        _toast('Customer tersimpan, tetapi $failed dari $total aktivasi '
+            'gagal. Periksa nomor yang gagal lalu kirim ulang.');
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    _toast('Customer berhasil ditambahkan.');
+    Navigator.of(context).pop(true);
   }
 
   void _toast(String message) {
@@ -219,18 +284,6 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   ),
                   const FieldGap(),
 
-                  const FieldLabel('Alamat Customer'),
-                  TextFormField(
-                    controller: _address,
-                    maxLines: 3,
-                    minLines: 2,
-                    textCapitalization: TextCapitalization.sentences,
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Alamat Customer wajib diisi.'
-                        : null,
-                  ),
-                  const FieldGap(),
-
                   const FieldLabel('Long Lat'),
                   _LongLatRow(
                     controller: _longLat,
@@ -247,6 +300,19 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   ],
                   const FieldGap(),
 
+                  // Below Long Lat so GET GPS runs first and can fill it.
+                  const FieldLabel('Alamat Customer'),
+                  TextFormField(
+                    controller: _address,
+                    maxLines: 3,
+                    minLines: 2,
+                    textCapitalization: TextCapitalization.sentences,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Alamat Customer wajib diisi.'
+                        : null,
+                  ),
+                  const FieldGap(),
+
                   const FieldLabel('Status Customer'),
                   DropdownButtonFormField<String>(
                     initialValue: _status,
@@ -260,10 +326,25 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                           child: Text(StatusLabels.customer(s)),
                         ),
                     ],
-                    onChanged: (v) => setState(() => _status = v),
+                    onChanged: _submitting
+                        ? null
+                        : (v) {
+                            setState(() => _status = v);
+                            // Hidden scans must not be submitted.
+                            if (v != CustomerStatusWire.purchase) {
+                              _scans.clear();
+                            }
+                          },
                     validator: (v) =>
                         v == null ? 'Status Customer wajib dipilih.' : null,
                   ),
+                  if (_isPurchase) ...[
+                    const FieldGap(),
+                    MsisdnScanSection(
+                      controller: _scans,
+                      enabled: !_submitting,
+                    ),
+                  ],
                   const SizedBox(height: 30),
 
                   Center(
@@ -271,7 +352,9 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                       width: 230,
                       height: 46,
                       child: ElevatedButton(
-                        onPressed: _submitting ? null : _submit,
+                        onPressed: _submitting || (_isPurchase && _scans.isEmpty)
+                            ? null
+                            : _submit,
                         child: _submitting
                             ? const SizedBox(
                                 height: 20,
@@ -325,8 +408,7 @@ class _DateField extends StatelessWidget {
               value == null ? '' : Dates.fieldDate(value!),
               style: const TextStyle(color: Brand.charcoal, fontSize: 15),
             ),
-            const Icon(Icons.calendar_today_outlined,
-                color: Brand.textMuted, size: 18),
+            const Icon(Icons.calendar_month, color: Brand.amber, size: 22),
           ],
         ),
       ),

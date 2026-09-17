@@ -183,6 +183,9 @@ class InventoryItem {
     required this.eligible,
     this.imei,
     this.deviceModelCode,
+    this.brand,
+    this.networkGeneration,
+    this.status,
     this.reason,
   });
 
@@ -194,17 +197,32 @@ class InventoryItem {
   /// Display-only. Resolved by the server; never typed or guessed (§7 rule 2).
   final String? imei;
   final String? deviceModelCode;
+
+  /// The modem maker, e.g. `ADVAN` — not the SIM brand.
+  final String? brand;
+
+  /// `4G` or `5G`. Returned by the live backend but not yet documented in
+  /// openapi.yaml.
+  final String? networkGeneration;
+
+  /// `InventoryStatus` wire value, e.g. `ALLOCATED`.
+  final String? status;
   final String? reason;
 
-  factory InventoryItem.fromJson(Map<String, dynamic> j) => InventoryItem(
-        msisdn: (j['msisdn'] ?? '').toString(),
-        eligible: j['eligible'] == true,
-        imei: j['imei']?.toString(),
-        deviceModelCode:
-            (j['deviceModel'] as Map?)?['modelCode']?.toString() ??
-                j['deviceModelCode']?.toString(),
-        reason: j['reason']?.toString(),
-      );
+  factory InventoryItem.fromJson(Map<String, dynamic> j) {
+    final model = (j['deviceModel'] as Map?)?.cast<String, dynamic>();
+    return InventoryItem(
+      msisdn: (j['msisdn'] ?? '').toString(),
+      eligible: j['eligible'] == true,
+      imei: j['imei']?.toString(),
+      deviceModelCode:
+          model?['modelCode']?.toString() ?? j['deviceModelCode']?.toString(),
+      brand: model?['brand']?.toString(),
+      networkGeneration: model?['networkGeneration']?.toString(),
+      status: j['status']?.toString(),
+      reason: j['reason']?.toString(),
+    );
+  }
 }
 
 abstract final class ActivationStatusWire {

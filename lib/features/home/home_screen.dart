@@ -16,6 +16,7 @@ import '../../widgets/stat_tile.dart';
 import '../activation/activation_form_screen.dart';
 import '../auth/session_controller.dart';
 import '../customers/customer_form_screen.dart';
+import '../inventory/modem_allocation_screen.dart';
 import '../report/report_screen.dart';
 import 'activity_chart.dart';
 import 'activity_series.dart';
@@ -127,6 +128,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Aktivasi Pelanggan',
                     description: 'Scan MSISDN dan aktifkan unit pelanggan',
                     onTap: () => _open(const ActivationFormScreen()),
+                  ),
+                  const SizedBox(height: 14),
+                  MenuCard(
+                    iconAsset: MenuIcon.modemAllocation,
+                    title: 'Alokasi Modem',
+                    description: 'Lihat stok modem yang dialokasikan untuk kamu',
+                    onTap: () => _open(const ModemAllocationScreen()),
                   ),
                   const SizedBox(height: 14),
                   MenuCard(

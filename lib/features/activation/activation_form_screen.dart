@@ -10,7 +10,7 @@ import '../../data/models/models.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/form_fields.dart';
 import '../auth/session_controller.dart';
-import 'scanner_screen.dart';
+import 'msisdn_scan_list.dart';
 
 /// **Aktivasi Pelanggan** — records a sold unit against a customer.
 class ActivationFormScreen extends StatefulWidget {
@@ -22,8 +22,8 @@ class ActivationFormScreen extends StatefulWidget {
 
 class _ActivationFormScreenState extends State<ActivationFormScreen> {
   final _longLat = TextEditingController();
-  final _msisdn = TextEditingController();
   final _location = LocationService();
+  late final MsisdnScanController _scans;
 
   List<CustomerOption> _customers = const [];
   bool _customersLoading = true;
@@ -31,23 +31,26 @@ class _ActivationFormScreenState extends State<ActivationFormScreen> {
 
   int? _customerId;
   LocationFix? _fix;
-  InventoryItem? _device;
   bool _gpsBusy = false;
-  bool _lookupBusy = false;
-  String? _lookupMessage;
   bool _submitting = false;
-  String? _idempotencyKey;
 
   @override
   void initState() {
     super.initState();
+    _scans = MsisdnScanController(context.read<AeRepository>())
+      ..addListener(_onScansChanged);
     _loadCustomers();
   }
+
+  // Kirim's enabled state depends on whether the list is empty.
+  void _onScansChanged() => setState(() {});
 
   @override
   void dispose() {
     _longLat.dispose();
-    _msisdn.dispose();
+    _scans
+      ..removeListener(_onScansChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -57,7 +60,11 @@ class _ActivationFormScreenState extends State<ActivationFormScreen> {
       _customersError = null;
     });
     try {
-      final list = await context.read<AeRepository>().customerLookup();
+      // A customer may hold several activations, so ones already activated
+      // must stay selectable.
+      final list = await context
+          .read<AeRepository>()
+          .customerLookup(excludeActivated: false);
       if (!mounted) return;
       setState(() {
         _customers = list;
@@ -109,94 +116,36 @@ class _ActivationFormScreenState extends State<ActivationFormScreen> {
     );
   }
 
-  Future<void> _scan() async {
-    final scanned = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const ScannerScreen()),
-    );
-    if (scanned == null || !mounted) return;
-    _msisdn.text = scanned;
-    await _lookup(scanned);
-  }
-
-  /// Resolves the scanned number to its bundled device and decides whether the
-  /// AE may submit at all (§7 rule 4).
-  Future<void> _lookup(String msisdn) async {
-    setState(() {
-      _lookupBusy = true;
-      _device = null;
-      _lookupMessage = null;
-    });
-
-    try {
-      final item = await context.read<AeRepository>().lookupMsisdn(msisdn);
-      if (!mounted) return;
-      setState(() {
-        _device = item;
-        _lookupBusy = false;
-        _lookupMessage =
-            item.eligible ? null : IneligibleReason.describe(item.reason);
-      });
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _lookupBusy = false;
-        _lookupMessage = switch (e.code) {
-          'NOT_FOUND' => 'Nomor ini tidak terdaftar sebagai nomor FWA.',
-          ApiException.offlineCode =>
-            'Tidak ada koneksi. Nomor tidak dapat diperiksa.',
-          _ => e.message,
-        };
-      });
-    }
-  }
-
   bool get _canSubmit =>
-      _customerId != null &&
-      _fix != null &&
-      _device != null &&
-      _device!.eligible &&
-      !_submitting;
+      _customerId != null && _fix != null && !_scans.isEmpty && !_submitting;
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_canSubmit) return;
 
-    _idempotencyKey ??= AeRepository.newIdempotencyKey();
+    final total = _scans.devices.length;
     setState(() => _submitting = true);
+    final failed = await _scans.activateAll(
+      customerId: _customerId!,
+      fix: _fix!,
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
 
-    try {
-      await context.read<AeRepository>().createActivation(
-            customerId: _customerId!,
-            msisdn: _device!.msisdn,
-            latitude: _fix!.latitude,
-            longitude: _fix!.longitude,
-            geoAccuracyM: _fix!.accuracyM,
-            isMocked: _fix!.isMocked,
-            idempotencyKey: _idempotencyKey,
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aktivasi berhasil dikirim.'),
-          backgroundColor: Brand.ink,
-        ),
-      );
+    if (failed == 0) {
+      _toast('Aktivasi berhasil dikirim.');
       Navigator.of(context).pop(true);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      final message = switch (e.code) {
-        'MSISDN_ALREADY_ACTIVATED' => 'Nomor ini sudah pernah diaktivasi.',
-        'MSISDN_NOT_ALLOCATED' => 'Nomor ini bukan alokasi stok kamu.',
-        'CUSTOMER_NOT_OWNED' => 'Customer ini bukan milik kamu.',
-        ApiException.offlineCode =>
-          'Tidak ada koneksi. Coba lagi saat jaringan kembali.',
-        _ => e.message,
-      };
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Brand.ink),
-      );
+      return;
     }
+    // Successful units have left the list; the failed ones stay for a retry.
+    _toast('${total - failed} dari $total aktivasi berhasil. '
+        'Periksa nomor yang gagal lalu kirim ulang.');
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Brand.ink),
+    );
   }
 
   @override
@@ -285,57 +234,10 @@ class _ActivationFormScreenState extends State<ActivationFormScreen> {
                 ],
                 const FieldGap(),
 
-                const FieldLabel('Scan MSISDN'),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _msisdn,
-                        readOnly: true,
-                        style: const TextStyle(fontSize: 15),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      height: 54,
-                      width: 60,
-                      child: ElevatedButton(
-                        onPressed: _lookupBusy ? null : _scan,
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: _lookupBusy
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            // The asset pack has no barcode icon; the Material
-                            // glyph was approved in its place.
-                            : const Icon(Icons.barcode_reader,
-                                color: Colors.white, size: 26),
-                      ),
-                    ),
-                  ],
+                MsisdnScanSection(
+                  controller: _scans,
+                  enabled: !_submitting,
                 ),
-                if (_lookupMessage != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    _lookupMessage!,
-                    style: const TextStyle(color: Brand.danger, fontSize: 13),
-                  ),
-                ],
-                const FieldGap(),
-
-                const FieldLabel('IMEI'),
-                DisabledField(value: _device?.imei ?? ''),
-                const FieldGap(),
-
-                const FieldLabel('Tipe Modem'),
-                DisabledField(value: _device?.deviceModelCode ?? ''),
                 const SizedBox(height: 30),
 
                 Center(
